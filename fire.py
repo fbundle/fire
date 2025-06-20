@@ -10,63 +10,70 @@ PYTHON_BIN = "/Users/khanh/miniforge3/envs/test/bin/python"
 TMUX_BIN = "/opt/homebrew/bin/tmux"
 
 
-def load_module(file_path: str) -> types.ModuleType:
-    module_name = os.path.splitext(os.path.basename(file_path))[0]
-    spec = importlib.util.spec_from_file_location(module_name, file_path)
-    if spec is None:
-        print(f"Cannot create a module spec for {file_path}", file=sys.stderr)
-        sys.exit(1)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    if hasattr(module, "main"):
-        module.main()
-    return module
 
 def get_make_config_func(file_path: str, make_func_name: str):
+    def load_module(file_path: str) -> types.ModuleType:
+        module_name = os.path.splitext(os.path.basename(file_path))[0]
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        if spec is None:
+            print(f"Cannot create a module spec for {file_path}", file=sys.stderr)
+            sys.exit(1)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if hasattr(module, "main"):
+            module.main()
+        return module
+
     module = load_module(file_path)
     make_func = getattr(module, make_func_name)
     return make_func
 
-def make_fire_script(app_name: str, host_list: list[str], deploy_rootdir: str, env: dict[str, str] | None = None):
-    script = ""
-    script += "#!/usr/bin/env bash\n"
-    script += "set -xe\n"
-    # copy
-    for host in host_list:
-        deploy_dir = f"{deploy_rootdir}/deploy_{app_name}_{host}"
-        script += f"rsync -avh --delete --progress tmp/{app_name}.json {host}:{deploy_dir}/ &\n"
-        script += f"rsync -avh --delete --progress {app_name} {host}:{deploy_dir}/ &\n"
-    script += "wait\n"
+fire_script_template = """
+rsync -avh --delete --progress tmp/{app_name}.json {host}:{deploy_dir}/
+rsync -avh --delete --progress {app_name} {host}:{deploy_dir}/
+ssh {host} << EOF
+   cd {deploy_dir}/{app_name}
+   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
+   {tmux_bin} new-session -s {tmux_session} -d "{env_command};{python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log
+EOF
+"""
 
-    # exec
-    env_command = ""
-    if env is not None:
-        env_command = ";".join(map(lambda kv: f"export {kv[0]}={kv[1]}", env.items()))
+def make_fire_script(app_name: str, host_list: list[str], deploy_rootdir: str, env: dict[str, str] | None = None):
+    script = "#!/usr/bin/env bash\nset -xe\n"
     for i, host in enumerate(host_list):
         deploy_dir = f"{deploy_rootdir}/deploy_{app_name}_{host}"
-        tmux_session = app_name
-        node_script = f"""
-            cd {deploy_dir}/{app_name}
-            {TMUX_BIN} has-session -t {tmux_session} 2>/dev/null && {TMUX_BIN} kill-session -t {tmux_session}
-            {TMUX_BIN} new-session -s {tmux_session} -d "{env_command};{PYTHON_BIN} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
-        """
-        script += f"ssh {host} << EOF\n{node_script}\nEOF\n"
-
+        tmux_session = f"deploy_{app_name}_{host}"
+        env_command = ";".join(map(lambda kv: f"export {kv[0]}={kv[1]}", env.items())) if env is not None else ""
+        script += fire_script_template.format(
+            app_name=app_name,
+            host=host,
+            deploy_dir=deploy_dir,
+            tmux_bin=TMUX_BIN,
+            tmux_session=tmux_session,
+            python_bin=PYTHON_BIN,
+            env_command=env_command,
+            i=i,
+        )
     return script
 
+clean_script_template = """
+ssh {host} << EOF
+   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
+   rm -rf {deploy_dir}
+EOF
+"""
+
 def make_clean_script(app_name: str, host_list: list[str], deploy_rootdir: str):
-    script = ""
-    script += "#!/usr/bin/env bash\n"
-    script += "set -xe\n"
-    # exec
+    script = "#!/usr/bin/env bash\nset -xe\n"
     for i, host in enumerate(host_list):
         deploy_dir = f"{deploy_rootdir}/deploy_{app_name}_{host}"
-        tmux_session = app_name
-        node_script = f"""
-            {TMUX_BIN} has-session -t {tmux_session} 2>/dev/null && {TMUX_BIN} kill-session -t {tmux_session}
-            rm -rf {deploy_dir} 
-        """
-        script += f"ssh {host} << EOF\n{node_script}\nEOF\n"
+        tmux_session = f"deploy_{app_name}_{host}"
+        script += clean_script_template.format(
+            host=host,
+            deploy_dir=deploy_dir,
+            tmux_bin=TMUX_BIN,
+            tmux_session=tmux_session,
+        )
 
     return script
 
