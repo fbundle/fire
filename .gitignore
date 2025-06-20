@@ -194,4 +194,5 @@ cython_debug/
 .cursorindexingignore
 
 # my own files
+.idea
 tmp
