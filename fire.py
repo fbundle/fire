@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 import shutil
+import subprocess
 import sys
 import types
 
@@ -78,7 +79,7 @@ def make_clean_script(app_name: str, host_list: list[str], deploy_rootdir: str):
     return script
 
 
-def make(app_name: str, host_list_str: str, deploy_rootdir: str, env_str: str, **kwargs):
+def main(app_name: str, host_list_str: str, deploy_rootdir: str, env_str: str, **kwargs):
     host_list = host_list_str.split(",")
     env = {}
     for pair_str in env_str.split(","):
@@ -127,8 +128,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    make(**args.__dict__)
+    main(**args.__dict__)
     if args.run:
-        os.system("./tmp/fire")
+        subprocess.run(["./tmp/fire"], check=True)
 
 
