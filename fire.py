@@ -35,7 +35,7 @@ rsync -avh --delete --progress {app_name} {host}:{deploy_dir}/
 ssh {host} << EOF
    cd {deploy_dir}/{app_name}
    {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
-   {tmux_bin} new-session -s {tmux_session} -d "{env_command} {python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
+   {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
 EOF
 """
 
@@ -44,7 +44,7 @@ def make_fire_script(app_name: str, host_list: list[str], deploy_rootdir: str, e
     for i, host in enumerate(host_list):
         deploy_dir = f"{deploy_rootdir}/deploy_{app_name}_{host}"
         tmux_session = f"deploy_{app_name}_{host}"
-        env_command = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", env.items())) if env is not None else ""
+        env_str = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", env.items())) if env is not None else ""
         script += fire_script_template.format(
             app_name=app_name,
             host=host,
@@ -52,7 +52,7 @@ def make_fire_script(app_name: str, host_list: list[str], deploy_rootdir: str, e
             tmux_bin=TMUX_BIN,
             tmux_session=tmux_session,
             python_bin=PYTHON_BIN,
-            env_command=env_command,
+            env_str=env_str,
             i=i,
         )
     return script
