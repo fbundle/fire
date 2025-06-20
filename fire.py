@@ -43,7 +43,7 @@ def make_fire_script(app_name: str, host_list: list[str], deploy_rootdir: str, e
     script = "#!/usr/bin/env bash\nset -xe\n"
     for i, host in enumerate(host_list):
         deploy_dir = f"{deploy_rootdir}/deploy_{app_name}_{host}"
-        tmux_session = f"deploy_{app_name}_{host}"
+        tmux_session = f"deploy_{app_name}_{host}".replace(".", "_")
         env_str = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", env.items())) if env is not None else ""
         script += fire_script_template.format(
             app_name=app_name,
