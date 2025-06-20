@@ -34,7 +34,7 @@ rsync -avh --delete --progress {app_name} {host}:{deploy_dir}/
 ssh {host} << EOF
    cd {deploy_dir}/{app_name}
    {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
-   {tmux_bin} new-session -s {tmux_session} -d "{env_command};{python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log
+   {tmux_bin} new-session -s {tmux_session} -d "{env_command};{python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
 EOF
 """
 
@@ -78,7 +78,7 @@ def make_clean_script(app_name: str, host_list: list[str], deploy_rootdir: str):
     return script
 
 
-def main(app_name: str, host_list_str: str, deploy_rootdir: str, env_str: str, **kwargs):
+def make(app_name: str, host_list_str: str, deploy_rootdir: str, env_str: str, **kwargs):
     host_list = host_list_str.split(",")
     env = {}
     for pair_str in env_str.split(","):
@@ -123,8 +123,12 @@ if __name__ == "__main__":
     parser.add_argument("--host_list_str", type=str, default="localhost,127.0.0.1")
     parser.add_argument("--deploy_rootdir", type=str, default="/tmp")
     parser.add_argument("--env_str", type=str, default="NAME=khanh,AGE=28")
+    parser.add_argument("--run", action="store_true", default=False)
 
     args = parser.parse_args()
 
+    make(**args.__dict__)
+    if args.run:
+        os.system("./tmp/fire")
 
-    main(**args.__dict__)
+
