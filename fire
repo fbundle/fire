@@ -35,7 +35,7 @@ class FireConfig(pydantic.BaseModel):
             host_config.post_init(self)
         return self
 
-fire_script_template = """
+run_script_template = """
 rsync -avh --delete --progress tmp/{app_name}.json {user}@{host}:{deploy_dir}/
 rsync -avh --delete --progress {app_name} {user}@{host}:{deploy_dir}/
 ssh {user}@{host} << EOF
@@ -49,7 +49,7 @@ def make_run_script(fire: FireConfig) -> str:
     script = "#!/usr/bin/env bash\nset -xe\n"
     for i, host_config in enumerate(fire.host_config_list):
         env_str = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", fire.env.items()))
-        script += fire_script_template.format(
+        script += run_script_template.format(
             app_name=fire.app_name,
             host=host_config.hostname,
             user=host_config.user,
