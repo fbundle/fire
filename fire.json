@@ -6,7 +6,7 @@
   "app_path": "app/example",
   "host_config_list": [
     {
-    "host": "localhost",
+    "host": "100.69.15.9",
     "user": "khanh",
     "exec": "/Users/khanh/miniforge3/envs/test/bin/python main.py",
     "tmux_bin": "/opt/homebrew/bin/tmux",
