@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     main(config.post_init())
 
-    if False:
+    if len(sys.argv) >= 1 and sys.argv[1] == "run" :
         import subprocess
         subprocess.run(["./tmp/fire"], check=True)
 
