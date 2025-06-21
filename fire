@@ -128,6 +128,11 @@ def main(fire: FireConfig):
     os.chmod("tmp/clean", 0o700)
 
 if __name__ == "__main__":
+    if (sys.version_info.major, sys.version_info.minor) != (3, 12):
+        print("WARNING: This script is only tested with python 3.12.")
+    if not pydantic.__version__.startswith("2.11."):
+        print("WARNING: This script is only tested with pydantic 2.11.")
+
     with open("fire.json", "r") as f:
         config = FireConfig(**json.loads(f.read()))
 
