@@ -81,7 +81,6 @@ ssh {user}@{host} << EOF
     {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
     rm -rf {deploy_dir}
 EOF
-rm -rf tmp
 """
 
 
