@@ -36,10 +36,10 @@ class FireConfig:
     app_name: str | None = None
 
     def post_init(self) -> FireConfig:
-        if self.app_name is None:
-            self.app_name = os.path.basename(self.app_path)
         for i, host_config in enumerate(self.host_config_list):
             self.host_config_list[i] = HostConfig(**host_config).post_init(self)
+        if self.app_name is None:
+            self.app_name = os.path.basename(self.app_path)
         return self
 
 
