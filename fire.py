@@ -10,8 +10,6 @@ import types
 PYTHON_BIN = "/Users/khanh/miniforge3/envs/test/bin/python"
 TMUX_BIN = "/opt/homebrew/bin/tmux"
 
-
-
 def get_make_config_func(file_path: str, make_func_name: str):
     def load_module(file_path: str) -> types.ModuleType:
         module_name = os.path.splitext(os.path.basename(file_path))[0]
