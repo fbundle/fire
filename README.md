@@ -1,6 +1,6 @@
 # FIRE
 
-auto fire up applications on multiple servers
+fire up applications on multiple servers
 
 ```bash
 ./fire run
