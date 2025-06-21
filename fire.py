@@ -1,14 +1,85 @@
-import argparse
+from __future__ import annotations
 import importlib.util
 import json
 import os
 import shutil
-import subprocess
 import sys
 import types
 
-PYTHON_BIN = "/Users/khanh/miniforge3/envs/test/bin/python"
-TMUX_BIN = "/opt/homebrew/bin/tmux"
+import pydantic
+
+class HostConfig(pydantic.BaseModel):
+    hostname: str
+    user: str
+    python_bin: str
+    tmux_bin: str
+    deploy_dir: str | None = None
+    tmux_session: str | None = None
+
+    def post_init(self, fire: FireConfig) -> HostConfig:
+        if self.deploy_dir is None:
+            self.deploy_dir = f"{fire.deploy_rootdir}/fire_{fire.app_name}_{self.hostname}_{self.user}"
+        if self.tmux_session is None:
+            self.tmux_session = f"fire_{fire.app_name}_{self.hostname}_{self.user}".replace(".", "_")
+        return self
+
+class FireConfig(pydantic.BaseModel):
+    env: dict[str, str]
+    app_name: str
+    make_config: str
+    deploy_rootdir: str
+    host_list: list[HostConfig]
+    def post_init(self) -> FireConfig:
+        for host_config in self.host_list:
+            host_config.post_init(self)
+        return self
+
+fire_script_template = """
+rsync -avh --delete --progress tmp/{app_name}.json {user}@{host}:{deploy_dir}/
+rsync -avh --delete --progress {app_name} {user}@{host}:{deploy_dir}/
+ssh {user}@{host} << EOF
+   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
+   cd {deploy_dir}/{app_name}
+   {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
+EOF
+"""
+
+def make_fire_script(fire: FireConfig) -> str:
+    script = "#!/usr/bin/env bash\nset -xe\n"
+    for i, host_config in enumerate(fire.host_list):
+        env_str = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", fire.env.items()))
+        script += fire_script_template.format(
+            app_name=fire.app_name,
+            host=host_config.hostname,
+            user=host_config.user,
+            deploy_dir=host_config.deploy_dir,
+            tmux_bin=host_config.tmux_bin,
+            tmux_session=host_config.tmux_session,
+            python_bin=host_config.python_bin,
+            env_str=env_str,
+            i=i,
+        )
+
+    return script
+
+clean_script_template = """
+ssh {user}@{host} << EOF
+   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
+   rm -rf {deploy_dir}
+EOF
+"""
+def make_clean_script(fire: FireConfig) -> str:
+    script = "#!/usr/bin/env bash\nset -xe\n"
+    for i, host_config in enumerate(fire.host_list):
+        script += clean_script_template.format(
+            host=host_config.hostname,
+            user=host_config.user,
+            deploy_dir=host_config.deploy_dir,
+            tmux_bin=host_config.tmux_bin,
+            tmux_session=host_config.tmux_session,
+        )
+
+    return script
 
 def get_make_config_func(file_path: str, make_func_name: str):
     def load_module(file_path: str) -> types.ModuleType:
@@ -27,107 +98,69 @@ def get_make_config_func(file_path: str, make_func_name: str):
     make_func = getattr(module, make_func_name)
     return make_func
 
-fire_script_template = """
-rsync -avh --delete --progress tmp/{app_name}.json {host}:{deploy_dir}/
-rsync -avh --delete --progress {app_name} {host}:{deploy_dir}/
-ssh {host} << EOF
-   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
-   cd {deploy_dir}/{app_name}
-   {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
-EOF
-"""
-
-def make_fire_script(app_name: str, host_list: list[str], deploy_rootdir: str, env: dict[str, str] | None = None):
-    script = "#!/usr/bin/env bash\nset -xe\n"
-    for i, host in enumerate(host_list):
-        deploy_dir = f"{deploy_rootdir}/deploy_{app_name}_{host}"
-        tmux_session = f"deploy_{app_name}_{host}".replace(".", "_")
-        env_str = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", env.items())) if env is not None else ""
-        script += fire_script_template.format(
-            app_name=app_name,
-            host=host,
-            deploy_dir=deploy_dir,
-            tmux_bin=TMUX_BIN,
-            tmux_session=tmux_session,
-            python_bin=PYTHON_BIN,
-            env_str=env_str,
-            i=i,
-        )
-    return script
-
-clean_script_template = """
-ssh {host} << EOF
-   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
-   rm -rf {deploy_dir}
-EOF
-"""
-
-def make_clean_script(app_name: str, host_list: list[str], deploy_rootdir: str):
-    script = "#!/usr/bin/env bash\nset -xe\n"
-    for i, host in enumerate(host_list):
-        deploy_dir = f"{deploy_rootdir}/deploy_{app_name}_{host}"
-        tmux_session = f"deploy_{app_name}_{host}"
-        script += clean_script_template.format(
-            host=host,
-            deploy_dir=deploy_dir,
-            tmux_bin=TMUX_BIN,
-            tmux_session=tmux_session,
-        )
-
-    return script
 
 
-def main(app_name: str, host_list_str: str, deploy_rootdir: str, env_str: str, **kwargs):
-    host_list = host_list_str.split(",")
-    env = {}
-    for pair_str in env_str.split(","):
-        k, v = pair_str.split("=", maxsplit=1)
-        env[k] = v
-
-
+def main(fire: FireConfig):
     if os.path.exists("tmp"):
         shutil.rmtree("tmp")
     os.makedirs("tmp")
 
-    with open(f"tmp/{app_name}.json", "w") as f:
+    with open(f"tmp/{fire.app_name}.json", "w") as f:
+        file_name, make_func_name = fire.make_config.split(":")
         make = get_make_config_func(
-            file_path=f"{app_name}/make_config.py",
-            make_func_name="make",
+            file_path=f"{fire.app_name}/{file_name}",
+            make_func_name=make_func_name,
         )
-        config = make(*host_list)
+        config = make(*[host_config.hostname for host_config in fire.host_list])
         f.write(json.dumps(config))
 
     with open("tmp/fire", "w") as f:
-        script = make_fire_script(
-            app_name=app_name,
-            host_list=host_list,
-            deploy_rootdir=deploy_rootdir,
-            env=env,
-        )
+        script = make_fire_script(fire=fire)
         f.write(script)
     os.chmod("tmp/fire", 0o700)
 
     with open("tmp/clean", "w") as f:
-        script = make_clean_script(
-            app_name=app_name,
-            host_list=host_list,
-            deploy_rootdir=deploy_rootdir,
-        )
+        script = make_clean_script(fire=fire)
         f.write(script)
     os.chmod("tmp/clean", 0o700)
 
+
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--app_name", type=str, default="example_app")
-    parser.add_argument("--host_list_str", type=str, default="localhost,127.0.0.1")
-    parser.add_argument("--deploy_rootdir", type=str, default="/tmp")
-    parser.add_argument("--env_str", type=str, default="NAME=khanh,AGE=28")
-    parser.add_argument("--run", action="store_true", default=False)
+    if os.path.exists("fire.json"):
+        with open("fire.json", "r") as f:
+            config = FireConfig(**json.loads(f.read()))
+    else:
+        config = FireConfig(
+            env={
+                "NAME": "khanh",
+                "AGE": "20",
+            },
+            app_name="example_app",
+            make_config="make_config.py:make",
+            deploy_rootdir="/tmp",
+            host_list=[
+                HostConfig(
+                    hostname="localhost",
+                    user="khanh",
+                    python_bin="/Users/khanh/miniforge3/envs/test/bin/python",
+                    tmux_bin="/opt/homebrew/bin/tmux",
+                ),
+                HostConfig(
+                    hostname="100.93.62.117",
+                    user="khanh",
+                    python_bin="/home/khanh/miniforge3/envs/test/bin/python",
+                    tmux_bin="/usr/bin/tmux",
+                ),
 
-    args = parser.parse_args()
+            ],
+        )
 
-    main(**args.__dict__)
-    if args.run:
+    main(config.post_init())
+
+    if False:
+        import subprocess
         subprocess.run(["./tmp/fire"], check=True)
 
 
