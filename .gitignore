@@ -196,3 +196,5 @@ cython_debug/
 # my own files
 .idea
 tmp
+fire
+fire.json
