@@ -1,0 +1,24 @@
+{
+  "env": {
+    "NAME": "khanh",
+    "AGE": "20"
+  },
+  "app_name": "example_app",
+  "make_config": "make_config.py:make",
+  "host_config_list": [
+    {
+    "hostname": "localhost",
+    "user": "khanh",
+    "exec": "/Users/khanh/miniforge3/envs/test/bin/python main.py",
+    "tmux_bin": "/opt/homebrew/bin/tmux",
+    "deploy_rootdir": "/tmp"
+  },
+    {
+      "hostname": "100.93.62.117",
+      "user": "khanh",
+      "exec": "/home/khanh/miniforge3/envs/test/bin/python main.py",
+      "tmux_bin": "/usr/bin/tmux",
+      "deploy_rootdir": "/tmp"
+    }
+  ]
+}

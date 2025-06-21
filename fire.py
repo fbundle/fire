@@ -13,12 +13,13 @@ class HostConfig(pydantic.BaseModel):
     user: str
     exec: str
     tmux_bin: str
+    deploy_rootdir: str
     deploy_dir: str | None = None
     tmux_session: str | None = None
 
     def post_init(self, fire: FireConfig) -> HostConfig:
         if self.deploy_dir is None:
-            self.deploy_dir = f"{fire.deploy_rootdir}/fire_{fire.app_name}_{self.hostname}_{self.user}"
+            self.deploy_dir = f"{self.deploy_rootdir}/fire_{fire.app_name}_{self.hostname}_{self.user}"
         if self.tmux_session is None:
             self.tmux_session = f"fire_{fire.app_name}_{self.hostname}_{self.user}".replace(".", "_")
         return self
@@ -27,10 +28,9 @@ class FireConfig(pydantic.BaseModel):
     env: dict[str, str]
     app_name: str
     make_config: str
-    deploy_rootdir: str
-    host_list: list[HostConfig]
+    host_config_list: list[HostConfig]
     def post_init(self) -> FireConfig:
-        for host_config in self.host_list:
+        for host_config in self.host_config_list:
             host_config.post_init(self)
         return self
 
@@ -46,7 +46,7 @@ EOF
 
 def make_fire_script(fire: FireConfig) -> str:
     script = "#!/usr/bin/env bash\nset -xe\n"
-    for i, host_config in enumerate(fire.host_list):
+    for i, host_config in enumerate(fire.host_config_list):
         env_str = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", fire.env.items()))
         script += fire_script_template.format(
             app_name=fire.app_name,
@@ -70,7 +70,7 @@ EOF
 """
 def make_clean_script(fire: FireConfig) -> str:
     script = "#!/usr/bin/env bash\nset -xe\n"
-    for i, host_config in enumerate(fire.host_list):
+    for i, host_config in enumerate(fire.host_config_list):
         script += clean_script_template.format(
             host=host_config.hostname,
             user=host_config.user,
@@ -111,7 +111,7 @@ def main(fire: FireConfig):
             file_path=f"{fire.app_name}/{file_name}",
             make_func_name=make_func_name,
         )
-        config = make(*[host_config.hostname for host_config in fire.host_list])
+        config = make(*[host_config.hostname for host_config in fire.host_config_list])
         f.write(json.dumps(config))
 
     with open("tmp/fire", "w") as f:
@@ -125,34 +125,8 @@ def main(fire: FireConfig):
     os.chmod("tmp/clean", 0o700)
 
 if __name__ == "__main__":
-    if os.path.exists("fire.json"):
-        with open("fire.json", "r") as f:
-            config = FireConfig(**json.loads(f.read()))
-    else:
-        config = FireConfig(
-            env={
-                "NAME": "khanh",
-                "AGE": "20",
-            },
-            app_name="example_app",
-            make_config="make_config.py:make",
-            deploy_rootdir="/tmp",
-            host_list=[
-                HostConfig(
-                    hostname="localhost",
-                    user="khanh",
-                    exec="/Users/khanh/miniforge3/envs/test/bin/python main.py",
-                    tmux_bin="/opt/homebrew/bin/tmux",
-                ),
-                HostConfig(
-                    hostname="100.93.62.117",
-                    user="khanh",
-                    exec="/home/khanh/miniforge3/envs/test/bin/python main.py",
-                    tmux_bin="/usr/bin/tmux",
-                ),
-
-            ],
-        )
+    with open("fire.json", "r") as f:
+        config = FireConfig(**json.loads(f.read()))
 
     main(config.post_init())
 
