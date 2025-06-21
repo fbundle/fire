@@ -11,7 +11,7 @@ import pydantic
 class HostConfig(pydantic.BaseModel):
     hostname: str
     user: str
-    python_bin: str
+    exec: str
     tmux_bin: str
     deploy_dir: str | None = None
     tmux_session: str | None = None
@@ -40,7 +40,7 @@ rsync -avh --delete --progress {app_name} {user}@{host}:{deploy_dir}/
 ssh {user}@{host} << EOF
    {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
    cd {deploy_dir}/{app_name}
-   {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
+   {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {exec} {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
 EOF
 """
 
@@ -55,7 +55,7 @@ def make_fire_script(fire: FireConfig) -> str:
             deploy_dir=host_config.deploy_dir,
             tmux_bin=host_config.tmux_bin,
             tmux_session=host_config.tmux_session,
-            python_bin=host_config.python_bin,
+            exec=host_config.exec,
             env_str=env_str,
             i=i,
         )
@@ -141,13 +141,13 @@ if __name__ == "__main__":
                 HostConfig(
                     hostname="localhost",
                     user="khanh",
-                    python_bin="/Users/khanh/miniforge3/envs/test/bin/python",
+                    exec="/Users/khanh/miniforge3/envs/test/bin/python main.py",
                     tmux_bin="/opt/homebrew/bin/tmux",
                 ),
                 HostConfig(
                     hostname="100.93.62.117",
                     user="khanh",
-                    python_bin="/home/khanh/miniforge3/envs/test/bin/python",
+                    exec="/home/khanh/miniforge3/envs/test/bin/python main.py",
                     tmux_bin="/usr/bin/tmux",
                 ),
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     main(config.post_init())
 
-    if len(sys.argv) >= 1 and sys.argv[1] == "run" :
+    if len(sys.argv) >= 2 and sys.argv[1] == "run" :
         import subprocess
         subprocess.run(["./tmp/fire"], check=True)
 
