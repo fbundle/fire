@@ -30,6 +30,7 @@ class FireConfig(pydantic.BaseModel):
     app_name: str
     make_config: str
     host_config_list: list[HostConfig]
+    app_config_list: list | None = None
     def post_init(self) -> FireConfig:
         for host_config in self.host_config_list:
             host_config.post_init(self)
@@ -84,38 +85,14 @@ def make_clean_script(fire: FireConfig) -> str:
 
     return script
 
-def get_make_config_func(file_path: str, make_func_name: str):
-    def load_module(file_path: str) -> types.ModuleType:
-        module_name = os.path.splitext(os.path.basename(file_path))[0]
-        spec = importlib.util.spec_from_file_location(module_name, file_path)
-        if spec is None:
-            print(f"Cannot create a module spec for {file_path}", file=sys.stderr)
-            sys.exit(1)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        if hasattr(module, "main"):
-            module.main()
-        return module
-
-    module = load_module(file_path)
-    make_func = getattr(module, make_func_name)
-    return make_func
-
-
-
 def main(fire: FireConfig):
     if os.path.exists("tmp"):
         shutil.rmtree("tmp")
     os.makedirs("tmp")
 
-    with open(f"tmp/{fire.app_name}.json", "w") as f:
-        file_name, make_func_name = fire.make_config.split(":")
-        make = get_make_config_func(
-            file_path=f"{fire.app_name}/{file_name}",
-            make_func_name=make_func_name,
-        )
-        config = make(*[host_config.hostname for host_config in fire.host_config_list])
-        f.write(json.dumps(config))
+    if fire.app_config_list is not None:
+        with open(f"tmp/{fire.app_name}.json", "w") as f:
+            f.write(json.dumps(fire.app_config_list, indent=2))
 
     with open("tmp/run", "w") as f:
         script = make_run_script(fire=fire)

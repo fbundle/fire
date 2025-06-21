@@ -20,5 +20,13 @@
       "tmux_bin": "/usr/bin/tmux",
       "deploy_rootdir": "/tmp"
     }
+  ],
+  "app_config_list": [
+    {
+      "name": "config_a"
+    },
+    {
+      "name": "config_b"
+    }
   ]
 }
