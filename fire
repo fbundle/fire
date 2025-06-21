@@ -39,9 +39,10 @@ run_script_template = """
 rsync -avh --delete --progress tmp/{app_name}.json {user}@{host}:{deploy_dir}/
 rsync -avh --delete --progress {app_name} {user}@{host}:{deploy_dir}/
 ssh {user}@{host} << EOF
-   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
-   cd {deploy_dir}/{app_name}
-   {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {exec} {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
+    set -xe
+    {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
+    cd {deploy_dir}/{app_name}
+    {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {exec} {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
 EOF
 """
 
@@ -65,8 +66,9 @@ def make_run_script(fire: FireConfig) -> str:
 
 clean_script_template = """
 ssh {user}@{host} << EOF
-   {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
-   rm -rf {deploy_dir}
+    set -xe
+    {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
+    rm -rf {deploy_dir}
 EOF
 """
 def make_clean_script(fire: FireConfig) -> str:
