@@ -127,8 +127,11 @@ def main(fire: FireConfig):
         f.write(script)
     os.chmod("tmp/clean", 0o700)
 
+def get_python_version():
+    return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
 if __name__ == "__main__":
-    if (sys.version_info.major, sys.version_info.minor) != (3, 12):
+    if not get_python_version().startswith("3.12."):
         print("WARNING: This script is only tested with python 3.12.")
     if not pydantic.__version__.startswith("2.11."):
         print("WARNING: This script is only tested with pydantic 2.11.")
