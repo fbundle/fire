@@ -45,7 +45,7 @@ ssh {user}@{host} << EOF
 EOF
 """
 
-def make_fire_script(fire: FireConfig) -> str:
+def make_run_script(fire: FireConfig) -> str:
     script = "#!/usr/bin/env bash\nset -xe\n"
     for i, host_config in enumerate(fire.host_config_list):
         env_str = " ".join(map(lambda kv: f"{kv[0]}={kv[1]}", fire.env.items()))
@@ -115,10 +115,10 @@ def main(fire: FireConfig):
         config = make(*[host_config.hostname for host_config in fire.host_config_list])
         f.write(json.dumps(config))
 
-    with open("tmp/fire", "w") as f:
-        script = make_fire_script(fire=fire)
+    with open("tmp/run", "w") as f:
+        script = make_run_script(fire=fire)
         f.write(script)
-    os.chmod("tmp/fire", 0o700)
+    os.chmod("tmp/run", 0o700)
 
     with open("tmp/clean", "w") as f:
         script = make_clean_script(fire=fire)
@@ -131,8 +131,9 @@ if __name__ == "__main__":
 
     main(config.post_init())
 
-    if len(sys.argv) >= 2 and sys.argv[1] == "run" :
+    if len(sys.argv) >= 2:
         import subprocess
-        subprocess.run(["./tmp/fire"], check=True)
+        subprocess.run([f"./tmp/{sys.argv[1]}"], check=True)
+
 
 
