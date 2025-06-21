@@ -124,9 +124,6 @@ def main(fire: FireConfig):
         f.write(script)
     os.chmod("tmp/clean", 0o700)
 
-
-
-
 if __name__ == "__main__":
     if os.path.exists("fire.json"):
         with open("fire.json", "r") as f:
