@@ -33,8 +33,8 @@ fire_script_template = """
 rsync -avh --delete --progress tmp/{app_name}.json {host}:{deploy_dir}/
 rsync -avh --delete --progress {app_name} {host}:{deploy_dir}/
 ssh {host} << EOF
-   cd {deploy_dir}/{app_name}
    {tmux_bin} has-session -t {tmux_session} 2> /dev/null && {tmux_bin} kill-session -t {tmux_session}
+   cd {deploy_dir}/{app_name}
    {tmux_bin} new-session -s {tmux_session} -d "export {env_str}; {python_bin} main.py {deploy_dir}/{app_name}.json {i} |& tee {deploy_dir}/run.log"
 EOF
 """
