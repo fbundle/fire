@@ -28,7 +28,6 @@ class HostConfig(pydantic.BaseModel):
 class FireConfig(pydantic.BaseModel):
     env: dict[str, str]
     app_name: str
-    make_config: str
     host_config_list: list[HostConfig]
     app_config_list: list | None = None
     def post_init(self) -> FireConfig:
