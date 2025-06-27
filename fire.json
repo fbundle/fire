@@ -8,14 +8,14 @@
     {
     "host": "100.69.15.9",
     "user": "khanh",
-    "exec": "/Users/khanh/miniforge3/envs/test/bin/python main.py",
+    "exec": "/Users/khanh/miniforge3/envs/test/bin/python main.py {host_id} {config_path}",
     "tmux_bin": "/opt/homebrew/bin/tmux",
     "deploy_rootdir": "/tmp"
   },
     {
       "host": "100.93.62.117",
       "user": "khanh",
-      "exec": "/home/khanh/miniforge3/envs/test/bin/python main.py",
+      "exec": "/home/khanh/miniforge3/envs/test/bin/python main.py {host_id} {config_path}",
       "tmux_bin": "/usr/bin/tmux",
       "deploy_rootdir": "/tmp"
     }
