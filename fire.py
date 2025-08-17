@@ -1,8 +1,6 @@
 
 from __future__ import annotations
 
-import os
-
 copy_template = "rsync -avh --delete --progress {src} {host_name}:{deploy_dir}/{task_name}/"
 exec_template = """ssh {host_name} << EOF
     set -xe
@@ -28,7 +26,7 @@ class Process:
         self.tmux_path = tmux_path
         self.commands = commands
 
-    def append_command(self, command: str) -> Process:
+    def _append_command(self, command: str) -> Process:
         return Process(
             task_name=self.task_name,
             host_name=self.host_name,
@@ -38,18 +36,18 @@ class Process:
         )
 
     def copy(self, src: str) -> Process:
-        return self.append_command(copy_template.format(
+        return self._append_command(copy_template.format(
             src=src,
             host_name=self.host_name,
             deploy_dir=self.deploy_dir,
             task_name=self.task_name,
         ))
 
-    def exec(self, command: str, env: dict[str, str] = None) -> Process:
+    def exec(self, command: str, env: dict[str, str] | None = None) -> Process:
         if env is None:
             env = {}
         env_str = " ".join([f"{k}={v}" for k, v in env.items()])
-        return self.append_command(exec_template.format(
+        return self._append_command(exec_template.format(
             host_name=self.host_name,
             deploy_dir=self.deploy_dir,
             task_name=self.task_name,
@@ -59,7 +57,7 @@ class Process:
         ))
 
     def clean(self) -> Process:
-        return self.append_command(clean_template.format(
+        return self._append_command(clean_template.format(
             host_name=self.host_name,
             deploy_dir=self.deploy_dir,
             task_name=self.task_name,
@@ -72,51 +70,3 @@ class Process:
 script_header = """#!/usr/bin/env bash
 set -xe
 """
-
-
-if __name__ == "__main__":
-    app1 = Process(
-        task_name="app_100_69_15_9",
-        host_name="khanh@100.69.15.9",
-        deploy_dir="/tmp",
-        tmux_path="/opt/homebrew/bin/tmux",
-    )
-    app2 = Process(
-        task_name="app_100_93_62_117",
-        host_name="khanh@100.93.62.117",
-        deploy_dir="/tmp",
-        tmux_path="/usr/bin/tmux",
-    )
-    config =  [
-        {
-            "name": "config_a"
-        },
-        {
-            "name": "config_b"
-        },
-    ]
-
-    TMP_DIR = "tmp"
-    os.makedirs(TMP_DIR, exist_ok=True)
-
-    # config
-    import json
-    open(f"{TMP_DIR}/config.json", "w").write(json.dumps(config))
-
-    # clean
-    clean = script_header
-    clean += app1.clean().export()
-    clean += app2.clean().export()
-    open(f"{TMP_DIR}/clean", "w").write(clean)
-
-    # run
-    run = script_header
-    run += app1.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
-        command="/Users/khanh/miniforge3/envs/test/bin/python app.py 0 config.json",
-        env={"NAME": "khanh", "AGE": "20"},
-    ).export()
-    run += app2.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
-        command="/home/khanh/miniforge3/envs/test/bin/python app.py 1 config.json",
-        env={"NAME": "khanh", "AGE": "21"},
-    ).export()
-    open(f"{TMP_DIR}/run", "w").write(run)

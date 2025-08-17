@@ -1,0 +1,56 @@
+import os
+import sys
+from fire import Process, script_header
+
+TMP_DIR = "tmp"
+
+
+if __name__ == '__main__':
+    os.makedirs(TMP_DIR, exist_ok=True)
+    app1 = Process(
+        task_name="app_100_69_15_9",
+        host_name="khanh@100.69.15.9",
+        deploy_dir="/tmp",
+        tmux_path="/opt/homebrew/bin/tmux",
+    )
+    app2 = Process(
+        task_name="app_100_93_62_117",
+        host_name="khanh@100.93.62.117",
+        deploy_dir="/tmp",
+        tmux_path="/usr/bin/tmux",
+    )
+
+    # config
+    import json
+
+    open(f"{TMP_DIR}/config.json", "w").write(json.dumps([
+        {
+            "name": "config_a"
+        },
+        {
+            "name": "config_b"
+        },
+    ]))
+
+    # clean
+    clean = script_header
+    clean += app1.clean().export()
+    clean += app2.clean().export()
+    open(f"{TMP_DIR}/clean", "w").write(clean)
+
+    # run
+    run = script_header
+    run += app1.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
+        command="/Users/khanh/miniforge3/envs/test/bin/python app.py 0 config.json",
+        env={"NAME": "khanh", "AGE": "20"},
+    ).export()
+    run += app2.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
+        command="/home/khanh/miniforge3/envs/test/bin/python app.py 1 config.json",
+        env={"NAME": "khanh", "AGE": "21"},
+    ).export()
+    open(f"{TMP_DIR}/run", "w").write(run)
+
+    if len(sys.argv) > 1:
+        name = sys.argv[1]
+        os.system(f"{TMP_DIR}/{name}")
+
