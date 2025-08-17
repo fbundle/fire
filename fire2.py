@@ -69,27 +69,10 @@ class Process:
     def export(self) -> str:
         return "\n".join(self.commands) + "\n"
 
-
-class Writer:
-    def __init__(self, path: str):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        self.f = open(path, "w")
-    def __del__(self):
-        self.f.close()
-
-    def write(self, data: str) -> Writer:
-        self.f.write(data)
-        return self
-
-    def write_process(self, process: Process) -> Writer:
-        self.f.write(process.export())
-        return self
-
-script_template = """#!/usr/bin/env bash
+script_header = """#!/usr/bin/env bash
 set -xe
 """
 
-SCRIPT_DIR = "tmp"
 
 if __name__ == "__main__":
     app1 = Process(
@@ -105,39 +88,35 @@ if __name__ == "__main__":
         tmux_path="/usr/bin/tmux",
     )
     config =  [
-    {
-      "name": "config_a"
-    },
-    {
-      "name": "config_b"
-    }
-  ]
+        {
+            "name": "config_a"
+        },
+        {
+            "name": "config_b"
+        },
+    ]
+
+    TMP_DIR = "tmp"
+    os.makedirs(TMP_DIR, exist_ok=True)
 
     # config
     import json
-    Writer(f"{SCRIPT_DIR}/config.json").write(json.dumps(config))
+    open(f"{TMP_DIR}/config.json", "w").write(json.dumps(config))
 
     # clean
-    Writer(f"{SCRIPT_DIR}/clean").write(script_template).write_process(
-        app1.clean(),
-    ).write_process(
-        app2.clean(),
-    )
+    clean = script_header
+    clean += app1.clean().export()
+    clean += app2.clean().export()
+    open(f"{TMP_DIR}/clean", "w").write(clean)
 
     # run
-    Writer(f"{SCRIPT_DIR}/run").write(script_template).write_process(app1.copy(
-        src="app/app.py",
-    ).copy(
-        src=f"{SCRIPT_DIR}/config.json",
-    ).exec(
+    run = script_header
+    run += app1.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
         command="/Users/khanh/miniforge3/envs/test/bin/python app.py 0 config.json",
         env={"NAME": "khanh", "AGE": "20"},
-    )).write_process(app2.copy(
-        src="app/app.py",
-    ).copy(
-        src=f"{SCRIPT_DIR}/config.json",
-    ).exec(
-        command="/home/khanh/miniforge3/envs/test/bin/python app.py 0 config.json",
-        env={"NAME": "khanh", "AGE": "20"},
-    ))
-
+    ).export()
+    run += app2.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
+        command="/home/khanh/miniforge3/envs/test/bin/python app.py 1 config.json",
+        env={"NAME": "khanh", "AGE": "21"},
+    ).export()
+    open(f"{TMP_DIR}/run", "w").write(run)
