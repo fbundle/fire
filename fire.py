@@ -1,6 +1,8 @@
 
 from __future__ import annotations
 
+import sys
+
 copy_template = "rsync -avh --delete --progress {src} {host_name}:{deploy_dir}/{task_name}/"
 exec_template = """ssh {host_name} << EOF
     set -xe
@@ -16,8 +18,31 @@ clean_template = """ssh {host_name} << EOF
 EOF
 """
 
+warning_printed = False
+
+def print_python_version_warning():
+    global warning_printed
+    if warning_printed:
+        return
+    warning_printed = True
+
+    def get_python_version():
+        return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+    tested_python_version = sorted({"3.12.", "3.13."})
+    tested = False
+    for python_version in tested_python_version:
+        if get_python_version().startswith(python_version):
+            tested = True
+            break
+
+    if not tested:
+        print(f"WARNING: This script is only tested with python {tested_python_version}")
+
 class Process:
     def __init__(self, task_name: str, host_name: str, deploy_dir: str = "/tmp", tmux_path: str = "tmux", commands: list[str] | None = None):
+        print_python_version_warning()
+
         if commands is None:
             commands = []
         self.task_name = task_name
@@ -70,3 +95,5 @@ class Process:
 script_header = """#!/usr/bin/env bash
 set -xe
 """
+
+__version__ = "0.0.1"
