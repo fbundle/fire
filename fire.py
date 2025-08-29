@@ -19,13 +19,13 @@ _warning_printed = False
 
 
 def _print_python_version_warning():
+    import sys
     global _warning_printed
     if _warning_printed:
         return
     _warning_printed = True
 
     def get_python_version():
-        import sys
         return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
     tested_python_version = sorted({"3.12.", "3.13."})
@@ -36,7 +36,8 @@ def _print_python_version_warning():
             break
 
     if not tested:
-        print(f"WARNING: This script is only tested with python {tested_python_version}")
+        print(f"WARNING: Your python version is {get_python_version()}", file=sys.stderr)
+        print(f"WARNING: This script is only tested with python {tested_python_version}", file=sys.stderr)
 
 
 class Process:
