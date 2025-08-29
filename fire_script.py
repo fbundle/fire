@@ -44,11 +44,11 @@ if __name__ == '__main__':
 
     # run
     run = script_header
-    run += app1.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
+    run += app1.push(src="app/app.py").push(src=f"{TMP_DIR}/config.json").exec(
         command="/Users/khanh/miniforge3/envs/test/bin/python app.py 0 config.json",
         env={"NAME": "khanh", "AGE": "20"},
     ).export()
-    run += app2.copy(src="app/app.py").copy(src=f"{TMP_DIR}/config.json").exec(
+    run += app2.push(src="app/app.py").push(src=f"{TMP_DIR}/config.json").exec(
         command="/home/khanh/miniforge3/envs/test/bin/python app.py 1 config.json",
         env={"NAME": "khanh", "AGE": "21"},
     ).export()

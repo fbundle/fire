@@ -60,7 +60,7 @@ class Process:
             commands=self.commands + [command],
         )
 
-    def copy(self, src: str) -> Process:
+    def push(self, src: str) -> Process:
         return self._append_command(copy_template.format(
             src=src,
             host_name=self.host_name,
