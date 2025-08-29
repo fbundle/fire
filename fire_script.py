@@ -1,19 +1,23 @@
 import os
 import sys
-from fire import Process, script_header
+
+import fire
 
 TMP_DIR = "tmp"
 
+script_header = """#!/usr/bin/env bash
+set -xe
+"""
 
 if __name__ == '__main__':
     os.makedirs(TMP_DIR, exist_ok=True)
-    app1 = Process(
+    app1 = fire.Process(
         task_name="app_100_69_15_9",
         host_name="khanh@100.69.15.9",
         deploy_dir="/tmp",
         tmux_path="/opt/homebrew/bin/tmux",
     )
-    app2 = Process(
+    app2 = fire.Process(
         task_name="app_100_93_62_117",
         host_name="khanh@100.93.62.117",
         deploy_dir="/tmp",

@@ -92,8 +92,5 @@ class Process:
     def export(self) -> str:
         return "\n".join(self.commands) + "\n"
 
-script_header = """#!/usr/bin/env bash
-set -xe
-"""
 
 __version__ = "0.0.1"
