@@ -58,7 +58,3 @@ if __name__ == '__main__':
         env={"NAME": "khanh", "AGE": "21"},
     ).export()
     open(f"{TMP_DIR}/run", "w").write(script_header + run_script)
-
-    if len(sys.argv) > 1:
-        name = sys.argv[1]
-        os.system(f"{TMP_DIR}/{name}")
