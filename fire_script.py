@@ -25,13 +25,13 @@ if __name__ == '__main__':
 
     # app
     app1 = fire.Process(
-        task_name="example_app" + "_" + uuid.uuid4().hex,
+        task_name="example_app",
         host_name="khanh@100.69.15.9",
         deploy_dir="/tmp",
         tmux_path="/opt/homebrew/bin/tmux",
     )
     app2 = fire.Process(
-        task_name="example_app" + "_" + uuid.uuid4().hex,
+        task_name="example_app",
         host_name="khanh@100.93.62.117",
         deploy_dir="/tmp",
         tmux_path="/usr/bin/tmux",
