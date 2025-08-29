@@ -7,7 +7,7 @@ import fire
 
 TMP_DIR = "tmp_deploy"
 
-script_header = """#!/usr/bin/env bash
+header = """#!/usr/bin/env bash
 set -xe
 """
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     clean_script = ""
     clean_script += app1.clean().export()
     clean_script += app2.clean().export()
-    open(f"{TMP_DIR}/clean", "w").write(script_header + clean_script)
+    open(f"{TMP_DIR}/clean", "w").write(header + clean_script)
 
     ## run
     app_name = "app.py"
@@ -57,4 +57,4 @@ if __name__ == '__main__':
         command=f"/home/khanh/miniforge3/envs/test/bin/python {app_name} 1 {config_name}",
         env={"NAME": "khanh", "AGE": "21"},
     ).export()
-    open(f"{TMP_DIR}/run", "w").write(script_header + run_script)
+    open(f"{TMP_DIR}/run", "w").write(header + run_script)
