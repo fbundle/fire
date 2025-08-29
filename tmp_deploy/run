@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -xe
+rsync -avh --delete --progress example_app/app.py khanh@100.69.15.9:/tmp/example_app/
+rsync -avh --delete --progress tmp_deploy/config.json khanh@100.69.15.9:/tmp/example_app/
+ssh khanh@100.69.15.9 << EOF
+    set -xe
+    /opt/homebrew/bin/tmux has-session -t example_app 2> /dev/null && /opt/homebrew/bin/tmux kill-session -t example_app
+    cd /tmp/example_app
+    /opt/homebrew/bin/tmux new-session -s example_app -d "export NAME=khanh AGE=20; /Users/khanh/miniforge3/envs/test/bin/python app.py 0 config.json |& tee /tmp/example_app/run.log"
+EOF
+
+rsync -avh --delete --progress example_app/app.py khanh@100.93.62.117:/tmp/example_app/
+rsync -avh --delete --progress tmp_deploy/config.json khanh@100.93.62.117:/tmp/example_app/
+ssh khanh@100.93.62.117 << EOF
+    set -xe
+    /usr/bin/tmux has-session -t example_app 2> /dev/null && /usr/bin/tmux kill-session -t example_app
+    cd /tmp/example_app
+    /usr/bin/tmux new-session -s example_app -d "export NAME=khanh AGE=21; /home/khanh/miniforge3/envs/test/bin/python app.py 1 config.json |& tee /tmp/example_app/run.log"
+EOF
+

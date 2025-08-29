@@ -1,10 +1,10 @@
 import json
 import os
-import uuid
+import sys
 
 import fire
 
-TMP_DIR = "tmp_deploy"
+TMP_DIR = "tmp"
 
 header = """#!/usr/bin/env bash
 set -xe
@@ -19,8 +19,7 @@ if __name__ == '__main__':
     }, {
         "name": "config_b"
     }]
-    config_name = "config.json"
-    config_path = f"{TMP_DIR}/{config_name}"
+    config_path = f"{TMP_DIR}/config.json"
     open(config_path, "w").write(json.dumps(config, indent=2))
 
     # app
@@ -44,16 +43,19 @@ if __name__ == '__main__':
     open(f"{TMP_DIR}/clean", "w").write(header + clean_script)
 
     ## run
-    app_name = "app.py"
-    app_path = f"example_app/{app_name}"
+    app_path = "example_app/app.py"
 
     run_script = ""
     run_script += app1.push(src=app_path).push(src=config_path).exec(
-        command=f"/Users/khanh/miniforge3/envs/test/bin/python {app_name} 0 {config_name}",
+        command=f"/Users/khanh/miniforge3/envs/test/bin/python app.py 0 config.json",
         env={"NAME": "khanh", "AGE": "20"},
     ).export()
     run_script += app2.push(src=app_path).push(src=config_path).exec(
-        command=f"/home/khanh/miniforge3/envs/test/bin/python {app_name} 1 {config_name}",
+        command=f"/home/khanh/miniforge3/envs/test/bin/python app.py 1 config.json",
         env={"NAME": "khanh", "AGE": "21"},
     ).export()
     open(f"{TMP_DIR}/run", "w").write(header + run_script)
+
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        os.system(f"bash {TMP_DIR}/{command}")

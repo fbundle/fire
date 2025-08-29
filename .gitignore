@@ -195,4 +195,4 @@ cython_debug/
 
 # my own files
 .idea
-tmp_deploy
+tmp
