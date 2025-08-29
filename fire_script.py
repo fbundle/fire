@@ -6,10 +6,6 @@ import fire
 
 TMP_DIR = "tmp"
 
-header = """#!/usr/bin/env bash
-set -xe
-"""
-
 if __name__ == '__main__':
     os.makedirs(TMP_DIR, exist_ok=True)
 
@@ -40,7 +36,7 @@ if __name__ == '__main__':
     clean_script = ""
     clean_script += app1.clean().export()
     clean_script += app2.clean().export()
-    open(f"{TMP_DIR}/clean", "w").write(header + clean_script)
+    open(f"{TMP_DIR}/clean", "w").write(clean_script)
 
     ## run
     app_path = "example_app/app.py"
@@ -54,7 +50,7 @@ if __name__ == '__main__':
         command=f"/home/khanh/miniforge3/envs/test/bin/python app.py 1 config.json",
         env={"NAME": "khanh", "AGE": "21"},
     ).export()
-    open(f"{TMP_DIR}/run", "w").write(header + run_script)
+    open(f"{TMP_DIR}/run", "w").write(run_script)
 
     if len(sys.argv) > 1:
         command = sys.argv[1]

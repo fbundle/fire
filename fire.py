@@ -48,7 +48,9 @@ class Process:
         _print_python_version_warning()
 
         if commands is None:
-            commands = []
+            commands = [
+                "set -xe",
+            ]
         self.task_name = task_name
         self.host_name = host_name
         self.deploy_dir = deploy_dir
