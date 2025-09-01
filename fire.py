@@ -40,7 +40,7 @@ def _print_python_version_warning():
         print(f"WARNING: This script is only tested with python {tested_python_version}", file=sys.stderr)
 
 
-class Process:
+class FireProcess:
     def __init__(
             self, task_name: str, host_name: str,
             deploy_dir: str = "/tmp", tmux_path: str = "tmux", commands: list[str] | None = None,
@@ -57,8 +57,8 @@ class Process:
         self.tmux_path = tmux_path
         self.commands = commands
 
-    def _append_command(self, command: str) -> Process:
-        return Process(
+    def _append_command(self, command: str) -> FireProcess:
+        return FireProcess(
             task_name=self.task_name,
             host_name=self.host_name,
             deploy_dir=self.deploy_dir,
@@ -66,7 +66,7 @@ class Process:
             commands=self.commands + [command],
         )
 
-    def push(self, src: str) -> Process:
+    def push(self, src: str) -> FireProcess:
         return self._append_command(_push_template.format(
             src=src,
             host_name=self.host_name,
@@ -74,7 +74,7 @@ class Process:
             task_name=self.task_name,
         ))
 
-    def exec(self, command: str, env: dict[str, str] | None = None) -> Process:
+    def exec(self, command: str, env: dict[str, str] | None = None) -> FireProcess:
         if env is None:
             env = {}
         env_str = " ".join([f"{k}={v}" for k, v in env.items()])
@@ -87,7 +87,7 @@ class Process:
             command=command,
         ))
 
-    def clean(self) -> Process:
+    def clean(self) -> FireProcess:
         return self._append_command(_clean_template.format(
             host_name=self.host_name,
             deploy_dir=self.deploy_dir,
